@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Organizer</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f5f3;
+  --bg-tertiary: #eeede8;
+  --text-primary: #1a1a18;
+  --text-secondary: #6b6a65;
+  --text-tertiary: #9e9d97;
+  --border-light: rgba(0,0,0,0.1);
+  --border-medium: rgba(0,0,0,0.18);
+  --border-strong: rgba(0,0,0,0.28);
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary: #1c1c1a;
+    --bg-secondary: #252522;
+    --bg-tertiary: #2e2e2b;
+    --text-primary: #f0efe8;
+    --text-secondary: #9e9d97;
+    --text-tertiary: #6b6a65;
+    --border-light: rgba(255,255,255,0.08);
+    --border-medium: rgba(255,255,255,0.14);
+    --border-strong: rgba(255,255,255,0.22);
+  }
+  .badge-high { background: #4a1b1b !important; color: #f09595 !important; }
+  .badge-med { background: #3a2800 !important; color: #FAC775 !important; }
+  .badge-low { background: #1a2e0a !important; color: #97C459 !important; }
+  .s-done { background: #1a2e0a !important; color: #97C459 !important; }
+  .s-inprogress { background: #042c53 !important; color: #85B7EB !important; }
+  .s-cancelled { background: #2e2e2b !important; color: #9e9d97 !important; }
+  .s-pending { background: #3a2800 !important; color: #FAC775 !important; }
+  .tab.active { background: #f0efe8; color: #1c1c1a; border-color: #f0efe8; }
+  .btn-save { background: #f0efe8; color: #1c1c1a; }
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+header {
+  background: var(--bg-primary);
+  border-bottom: 0.5px solid var(--border-light);
+  padding: 1rem 1.5rem;
+  position: sticky; top: 0; z-index: 50;
+}
+.header-inner {
+  max-width: 1100px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.app-title { font-size: 17px; font-weight: 600; color: var(--text-primary); }
+.app-title small { font-size: 12px; font-weight: 400; color: var(--text-tertiary); margin-left: 8px; }
+
+main { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+
+.tab-bar {
+  display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 1.5rem;
+}
+.tab {
+  padding: 6px 14px; font-size: 13px; border-radius: 20px;
+  border: 0.5px solid var(--border-light);
+  background: var(--bg-primary);
+  color: var(--text-secondary); cursor: pointer;
+  transition: all 0.15s; white-space: nowrap; font-family: var(--font);
+}
+.tab:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.tab.active {
+  background: var(--text-primary); color: var(--bg-primary);
+  border-color: var(--text-primary);
+}
+.tab .dot {
+  display: inline-block; width: 6px; height: 6px;
+  border-radius: 50%; margin-right: 6px; vertical-align: middle;
+}
+.tab-count { opacity: 0.6; margin-left: 4px; }
+
+.card {
+  background: var(--bg-primary);
+  border: 0.5px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 1.25rem; border-bottom: 0.5px solid var(--border-light);
+  flex-wrap: wrap; gap: 10px;
+}
+.card-title { font-size: 15px; font-weight: 500; }
+
+.stats-bar {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  padding: 0.75rem 1.25rem; border-bottom: 0.5px solid var(--border-light);
+  background: var(--bg-secondary);
+}
+.stat-chip {
+  padding: 3px 10px; border-radius: 20px; font-size: 12px;
+  background: var(--bg-primary); color: var(--text-secondary);
+  border: 0.5px solid var(--border-light);
+}
+.stat-chip strong { color: var(--text-primary); font-weight: 500; }
+.stat-chip.danger { background: #FCEBEB; color: #791F1F; border-color: #F7C1C1; }
+
+.add-btn {
+  padding: 7px 16px; font-size: 13px; border-radius: var(--radius-md);
+  border: 0.5px solid var(--border-medium);
+  background: var(--bg-primary); color: var(--text-primary);
+  cursor: pointer; transition: all 0.15s; font-family: var(--font);
+}
+.add-btn:hover { background: var(--bg-secondary); }
+
+.table-wrap { overflow-x: auto; }
+.items-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.items-table th {
+  text-align: left; padding: 9px 12px; font-weight: 500; font-size: 11px;
+  color: var(--text-secondary); border-bottom: 0.5px solid var(--border-light);
+  background: var(--bg-secondary); white-space: nowrap; letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.items-table td {
+  padding: 10px 12px; border-bottom: 0.5px solid var(--border-light);
+  color: var(--text-primary); vertical-align: middle;
+}
+.items-table tr:last-child td { border-bottom: none; }
+.items-table tbody tr:hover td { background: var(--bg-secondary); cursor: pointer; }
+.done-row td { opacity: 0.4; text-decoration: line-through; }
+.done-row td:last-child { text-decoration: none; opacity: 1; }
+
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 10px;
+  font-size: 11px; font-weight: 500;
+}
+.badge-high { background: #FCEBEB; color: #791F1F; }
+.badge-med { background: #FAEEDA; color: #633806; }
+.badge-low { background: #EAF3DE; color: #27500A; }
+.status-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+.s-pending { background: #FAEEDA; color: #633806; }
+.s-done { background: #EAF3DE; color: #27500A; }
+.s-inprogress { background: #E6F1FB; color: #0C447C; }
+.s-cancelled { background: #F1EFE8; color: #5F5E5A; }
+
+.action-btn {
+  background: none; border: none; cursor: pointer; padding: 3px 7px;
+  border-radius: 5px; font-size: 13px; transition: background 0.1s;
+  font-family: var(--font); color: var(--text-secondary);
+}
+.action-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+
+.empty-state {
+  text-align: center; padding: 4rem 1rem;
+  color: var(--text-tertiary); font-size: 14px;
+}
+.empty-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.4; }
+
+/* Modal */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 200; padding: 1rem;
+}
+.modal {
+  background: var(--bg-primary);
+  border: 0.5px solid var(--border-medium);
+  border-radius: var(--radius-xl); padding: 1.5rem;
+  width: 100%; max-width: 480px;
+  max-height: 90vh; overflow-y: auto;
+}
+.modal-title { font-size: 15px; font-weight: 500; margin-bottom: 1.25rem; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-full { grid-column: 1 / -1; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+.form-input, .form-select {
+  width: 100%; padding: 8px 10px; font-size: 13px;
+  border: 0.5px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary); color: var(--text-primary);
+  font-family: var(--font); outline: none;
+  transition: border-color 0.15s;
+}
+.form-input:focus, .form-select:focus { border-color: var(--border-strong); }
+.form-input.error { border-color: #E24B4A; }
+.modal-footer {
+  display: flex; justify-content: flex-end; gap: 8px; margin-top: 1.25rem;
+  padding-top: 1rem; border-top: 0.5px solid var(--border-light);
+}
+.btn-cancel {
+  padding: 7px 16px; font-size: 13px; border-radius: var(--radius-md);
+  border: 0.5px solid var(--border-medium);
+  background: none; color: var(--text-secondary); cursor: pointer;
+  font-family: var(--font);
+}
+.btn-save {
+  padding: 7px 16px; font-size: 13px; border-radius: var(--radius-md);
+  border: none; background: var(--text-primary);
+  color: var(--bg-primary); cursor: pointer; font-family: var(--font);
+  font-weight: 500;
+}
+.btn-cancel:hover { background: var(--bg-secondary); }
+
+@media (max-width: 600px) {
+  main { padding: 1rem; }
+  .form-grid { grid-template-columns: 1fr; }
+  .form-full { grid-column: 1; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="app-title">My Organizer <small id="last-saved"></small></div>
+    <button class="add-btn" onclick="openAdd()">+ Add item</button>
+  </div>
+</header>
+
+<main>
+  <div class="tab-bar" id="tab-bar"></div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title" id="section-title"></div>
+    </div>
+    <div class="stats-bar" id="stats-bar"></div>
+    <div class="table-wrap">
+      <table class="items-table" id="items-table"></table>
+    </div>
+    <div class="empty-state" id="empty-state" style="display:none">
+      <div class="empty-icon">📋</div>
+      Nothing here yet — click <strong>+ Add item</strong> to get started.
+    </div>
+  </div>
+</main>
+
+<div id="modal-container"></div>
+
+<script>
+const CATEGORIES = [
+  {
+    id: 'school', label: 'School', color: '#185FA5',
+    columns: [
+      { key: 'title', label: 'Assignment', type: 'text', required: true },
+      { key: 'subject', label: 'Subject', type: 'text' },
+      { key: 'due', label: 'Due date', type: 'date' },
+      { key: 'importance', label: 'Priority', type: 'select', options: ['High','Medium','Low'] },
+      { key: 'status', label: 'Status', type: 'select', options: ['Pending','In progress','Done'] },
+      { key: 'notes', label: 'Notes', type: 'text' },
+    ]
+  },
+  {
+    id: 'books', label: 'Books', color: '#3B6D11',
+    columns: [
+      { key: 'title', label: 'Book title', type: 'text', required: true },
+      { key: 'author', label: 'Author', type: 'text' },
+      { key: 'price', label: 'Price ($)', type: 'number' },
+      { key: 'importance', label: 'Priority', type: 'select', options: ['High','Medium','Low'] },
+      { key: 'status', label: 'Status', type: 'select', options: ['Want','Ordered','Purchased','Read'] },
+      { key: 'notes', label: 'Notes / source', type: 'text' },
+    ]
+  },
+  {
+    id: 'chores', label: 'Chores', color: '#854F0B',
+    columns: [
+      { key: 'title', label: 'Task', type: 'text', required: true },
+      { key: 'assigned', label: 'Told by', type: 'text' },
+      { key: 'due', label: 'Due date', type: 'date' },
+      { key: 'importance', label: 'Priority', type: 'select', options: ['High','Medium','Low'] },
+      { key: 'status', label: 'Status', type: 'select', options: ['Pending','In progress','Done'] },
+      { key: 'notes', label: 'Notes', type: 'text' },
+    ]
+  },
+  {
+    id: 'events', label: 'Events', color: '#534AB7',
+    columns: [
+      { key: 'title', label: 'Event', type: 'text', required: true },
+      { key: 'type', label: 'Type', type: 'select', options: ['Test','Presentation','Performance','Trip','Other'] },
+      { key: 'date', label: 'Date', type: 'date' },
+      { key: 'location', label: 'Location', type: 'text' },
+      { key: 'importance', label: 'Priority', type: 'select', options: ['High','Medium','Low'] },
+      { key: 'notes', label: 'Notes', type: 'text' },
+    ]
+  },
+  {
+    id: 'shopping', label: 'Shopping', color: '#993C1D',
+    columns: [
+      { key: 'title', label: 'Item', type: 'text', required: true },
+      { key: 'category2', label: 'Category', type: 'text' },
+      { key: 'price', label: 'Price ($)', type: 'number' },
+      { key: 'importance', label: 'Priority', type: 'select', options: ['High','Medium','Low'] },
+      { key: 'status', label: 'Status', type: 'select', options: ['Wanted','Ordered','Purchased'] },
+      { key: 'link', label: 'Link / store', type: 'text' },
+    ]
+  },
+  {
+    id: 'reminders', label: 'Reminders', color: '#0F6E56',
+    columns: [
+      { key: 'title', label: 'Reminder', type: 'text', required: true },
+      { key: 'date', label: 'Date', type: 'date' },
+      { key: 'importance', label: 'Priority', type: 'select', options: ['High','Medium','Low'] },
+      { key: 'status', label: 'Status', type: 'select', options: ['Pending','Done','Cancelled'] },
+      { key: 'notes', label: 'Notes', type: 'text' },
+    ]
+  }
+];
+
+let activeTab = 'school';
+let data = {};
+let editingId = null;
+
+CATEGORIES.forEach(c => data[c.id] = []);
+
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+function save() {
+  try {
+    localStorage.setItem('my_organizer_data', JSON.stringify(data));
+    const el = document.getElementById('last-saved');
+    if (el) el.textContent = 'Saved ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } catch(e) { console.warn('Save failed', e); }
+}
+
+function load() {
+  try {
+    const raw = localStorage.getItem('my_organizer_data');
+    if (raw) {
+      const loaded = JSON.parse(raw);
+      CATEGORIES.forEach(c => { if (loaded[c.id]) data[c.id] = loaded[c.id]; });
+    }
+  } catch(e) { console.warn('Load failed', e); }
+}
+
+function getCat() { return CATEGORIES.find(c => c.id === activeTab); }
+
+function impBadge(v) {
+  if (!v) return '';
+  const cls = v === 'High' ? 'badge-high' : v === 'Medium' ? 'badge-med' : 'badge-low';
+  return `<span class="badge ${cls}">${v}</span>`;
+}
+
+function statusBadge(v) {
+  if (!v) return '';
+  const cls = (v === 'Done' || v === 'Purchased' || v === 'Read') ? 's-done'
+    : (v === 'In progress' || v === 'Ordered') ? 's-inprogress'
+    : v === 'Cancelled' ? 's-cancelled' : 's-pending';
+  return `<span class="status-badge ${cls}">${v}</span>`;
+}
+
+function formatDate(d) {
+  if (!d) return '';
+  const dt = new Date(d + 'T00:00:00');
+  return dt.toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function renderTabs() {
+  document.getElementById('tab-bar').innerHTML = CATEGORIES.map(c => {
+    const count = data[c.id].filter(i => !i.done && i.status !== 'Done' && i.status !== 'Purchased' && i.status !== 'Read').length;
+    return `<button class="tab ${c.id === activeTab ? 'active' : ''}" onclick="switchTab('${c.id}')">
+      <span class="dot" style="background:${c.color}"></span>${c.label}${count > 0 ? `<span class="tab-count">${count}</span>` : ''}
+    </button>`;
+  }).join('');
+}
+
+function renderStats() {
+  const cat = getCat();
+  const items = data[activeTab];
+  const done = items.filter(i => i.done || i.status === 'Done' || i.status === 'Purchased' || i.status === 'Read').length;
+  const high = items.filter(i => i.importance === 'High' && !i.done && i.status !== 'Done').length;
+  let html = `<div class="stat-chip">Total <strong>${items.length}</strong></div>`;
+  if (done > 0) html += `<div class="stat-chip">Done <strong>${done}</strong></div>`;
+  if (high > 0) html += `<div class="stat-chip danger">High priority <strong>${high}</strong></div>`;
+  if (cat.columns.find(c => c.key === 'price')) {
+    const total = items.reduce((s, i) => s + (parseFloat(i.price) || 0), 0);
+    if (total > 0) html += `<div class="stat-chip">Est. total <strong>$${total.toFixed(2)}</strong></div>`;
+  }
+  document.getElementById('stats-bar').innerHTML = html;
+}
+
+function renderTable() {
+  const cat = getCat();
+  const items = data[activeTab];
+  document.getElementById('section-title').textContent = cat.label;
+  const table = document.getElementById('items-table');
+  const empty = document.getElementById('empty-state');
+
+  if (items.length === 0) {
+    table.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+  table.style.display = 'table';
+  empty.style.display = 'none';
+
+  let html = '<thead><tr>' + cat.columns.map(c => `<th>${c.label}</th>`).join('') + '<th style="width:70px;text-align:right">Actions</th></tr></thead><tbody>';
+
+  items.forEach(item => {
+    const isDone = item.done || item.status === 'Done' || item.status === 'Purchased' || item.status === 'Read';
+    html += `<tr class="${isDone ? 'done-row' : ''}" ondblclick="openEdit('${item.id}')">`;
+    cat.columns.forEach(c => {
+      let val = item[c.key] || '';
+      if (c.key === 'importance') val = impBadge(val);
+      else if (c.key === 'status') val = statusBadge(val);
+      else if ((c.key === 'due' || c.key === 'date') && val) val = formatDate(val);
+      else if (c.key === 'price' && val) val = '$' + parseFloat(val).toFixed(2);
+      else val = escHtml(val);
+      html += `<td>${val}</td>`;
+    });
+    html += `<td style="text-align:right;white-space:nowrap">
+      <button class="action-btn" title="${isDone ? 'Undo' : 'Mark done'}" onclick="toggleDone('${item.id}')">${isDone ? '↩' : '✓'}</button>
+      <button class="action-btn" title="Edit" onclick="openEdit('${item.id}')">✎</button>
+      <button class="action-btn" title="Delete" onclick="deleteItem('${item.id}')">✕</button>
+    </td></tr>`;
+  });
+  html += '</tbody>';
+  table.innerHTML = html;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function render() { renderTabs(); renderStats(); renderTable(); }
+function switchTab(id) { activeTab = id; render(); closeModal(); }
+
+function toggleDone(id) {
+  const item = data[activeTab].find(i => i.id === id);
+  if (item) { item.done = !item.done; save(); render(); }
+}
+
+function deleteItem(id) {
+  if (!confirm('Delete this item?')) return;
+  data[activeTab] = data[activeTab].filter(i => i.id !== id);
+  save(); render();
+}
+
+function openAdd() { openModal(null); }
+function openEdit(id) { openModal(id); }
+
+function openModal(id) {
+  editingId = id;
+  const cat = getCat();
+  const item = id ? (data[activeTab].find(i => i.id === id) || {}) : {};
+
+  const fields = cat.columns.map(c => {
+    const val = escHtml(item[c.key] || '');
+    const fid = 'f_' + c.key;
+    const fullClass = (c.key === 'notes' || c.key === 'link' || c.key === 'title') ? 'form-full' : '';
+    if (c.type === 'select') {
+      const opts = c.options.map(o => `<option value="${escHtml(o)}" ${item[c.key] === o ? 'selected' : ''}>${escHtml(o)}</option>`).join('');
+      return `<div class="form-group ${fullClass}">
+        <label class="form-label" for="${fid}">${c.label}</label>
+        <select class="form-select" id="${fid}"><option value="">—</option>${opts}</select>
+      </div>`;
+    }
+    const inputType = c.type === 'number' ? 'number' : c.type === 'date' ? 'date' : 'text';
+    const extra = c.type === 'number' ? 'step="0.01" min="0"' : '';
+    return `<div class="form-group ${fullClass}">
+      <label class="form-label" for="${fid}">${c.label}${c.required ? ' *' : ''}</label>
+      <input class="form-input" id="${fid}" type="${inputType}" value="${val}" ${extra}>
+    </div>`;
+  }).join('');
+
+  document.getElementById('modal-container').innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <div class="modal-title">${id ? 'Edit' : 'Add'} — ${cat.label}</div>
+        <div class="form-grid">${fields}</div>
+        <div class="modal-footer">
+          <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+          <button class="btn-save" onclick="saveItem()">Save</button>
+        </div>
+      </div>
+    </div>`;
+
+  const firstInput = document.querySelector('.form-input, .form-select');
+  if (firstInput) firstInput.focus();
+
+  document.addEventListener('keydown', handleModalKey);
+}
+
+function handleModalKey(e) {
+  if (e.key === 'Escape') closeModal();
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) saveItem();
+}
+
+function closeModal() {
+  document.getElementById('modal-container').innerHTML = '';
+  document.removeEventListener('keydown', handleModalKey);
+  editingId = null;
+}
+
+function saveItem() {
+  const cat = getCat();
+  const obj = editingId ? (data[activeTab].find(i => i.id === editingId) || { id: genId() }) : { id: genId() };
+  let valid = true;
+  cat.columns.forEach(c => {
+    const el = document.getElementById('f_' + c.key);
+    if (!el) return;
+    if (c.required && !el.value.trim()) {
+      el.classList.add('error'); valid = false; return;
+    }
+    el.classList.remove('error');
+    obj[c.key] = el.value;
+  });
+  if (!valid) return;
+  if (!editingId) data[activeTab].push(obj);
+  closeModal(); save(); render();
+}
+
+load();
+render();
+</script>
+</body>
+</html>
